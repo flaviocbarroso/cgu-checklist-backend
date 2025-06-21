@@ -1,127 +1,128 @@
 # ==============================================================================
-# ARQUIVO 2: app.py (VERSÃO FINAL SEM PANDAS)
+# ARQUIVO 2: app.py
+# (Este é o seu script, adaptado para uma aplicação Streamlit)
 # ==============================================================================
-import io
-import os
-from decimal import Decimal, getcontext
-from flask import Flask, request, jsonify, send_file
-from flask_cors import CORS
+import streamlit as st
+import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
+from decimal import Decimal, getcontext
+import io
+import json
+from google.oauth2 import service_account
+from google.cloud import firestore
+import datetime
 
-app = Flask(__name__)
-CORS(app)
+# --- Configuração do Firebase ---
+# Usa os segredos do Streamlit para conectar ao Firebase de forma segura
+try:
+    key_dict = json.loads(st.secrets["textkey"])
+    creds = service_account.Credentials.from_service_account_info(key_dict)
+    db = firestore.Client(credentials=creds)
+except Exception as e:
+    st.error(f"Erro ao conectar com o Firebase. Verifique as configurações de segredo. Detalhe: {e}")
+    st.stop()
+    
+# --- Funções do seu Script Original (Adaptadas) ---
+def get_all_tickets():
+    """Busca todos os tickets do Firestore e retorna como um DataFrame."""
+    tickets_ref = db.collection("tickets") # Assumindo que a coleção se chama 'tickets'
+    docs = tickets_ref.stream()
+    tickets_list = [doc.to_dict() for doc in docs]
+    return pd.DataFrame(tickets_list)
 
-@app.route('/generate-checklist', methods=['POST'])
-def gerar_principal_com_orcamento():
-    try:
-        payload = request.get_json()
-        if not payload:
-            return jsonify({"error": "Payload Vazio"}), 400
+def gerar_checklist_excel(tickets_df, header_info, active_filter):
+    """Sua lógica original de geração de Excel."""
+    # (Toda a sua lógica de cálculo e formatação de openpyxl vai aqui,
+    # usando tickets_df e header_info como entrada)
+    
+    # Exemplo simplificado para garantir a funcionalidade básica:
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "LISTA DE CONFERÊNCIA"
 
-        header_info = payload.get('header_info', {})
-        tickets_data = payload.get('tickets', [])
+    # --- Estilos (como no seu script) ---
+    font_bold_white_14 = Font(name="Calibri", sz=14, bold=True, color="FFFFFF")
+    fill_dark_blue = PatternFill(start_color="002060", end_color="002060", fill_type="solid")
+    align_center = Alignment(horizontal="center", vertical="center")
+    
+    # --- Adiciona o cabeçalho ---
+    ws.merge_cells('A1:K1')
+    ws['A1'] = "LISTA DE CONFERÊNCIA PARA PAGAMENTO"
+    ws['A1'].font = font_bold_white_14
+    ws['A1'].fill = fill_dark_blue
+    ws['A1'].alignment = align_center
 
-        if not tickets_data:
-            return jsonify({"error": "Nenhum ticket fornecido"}), 400
-
-        getcontext().prec = 10
+    # --- Adiciona dados ---
+    ws['A3'] = f"Processo nº: {header_info['processo_nr_input']}"
+    
+    # Adicionar os dados dos tickets na planilha
+    start_row = 5
+    for index, row in tickets_df.iterrows():
+        ws.cell(row=start_row + index, column=1, value=row.get("passageiro", ""))
+        ws.cell(row=start_row + index, column=2, value=row.get("empenho", ""))
+        # ... e assim por diante para todas as colunas
         
-        clean_tickets = []
-        todos_aeroportos = set()
-        for t in tickets_data:
-            clean_ticket = {}
-            for key, value in t.items():
-                if isinstance(value, str):
-                    clean_ticket[key] = value.strip()
-                else:
-                    clean_ticket[key] = value
-            
-            numeric_keys = ['tarifa', 'taxa_embarque', 'agenciamento', 'outras_taxas']
-            for key in numeric_keys:
-                clean_ticket[key] = Decimal(str(clean_ticket.get(key, 0) or 0))
+    # Salva o arquivo em memória para download
+    file_stream = io.BytesIO()
+    wb.save(file_stream)
+    file_stream.seek(0)
+    return file_stream
 
-            if 'aeroportos_nacionais' in clean_ticket and clean_ticket['aeroportos_nacionais']:
-                for ap_name, ap_value in clean_ticket['aeroportos_nacionais'].items():
-                    todos_aeroportos.add(ap_name)
-                    clean_ticket[ap_name] = Decimal(str(ap_value or 0))
+# --- Interface do Streamlit ---
+st.set_page_config(layout="wide", page_title="Gerador de Checklist CGU")
+st.title("Gerador de Checklist de Pagamento")
 
-            clean_ticket['natureza'] = str(clean_ticket.get('natureza', '')).lower()
-            clean_ticket['fornecedor'] = str(clean_ticket.get('fornecedor', '')).upper()
-            clean_ticket['empenho'] = str(clean_ticket.get('empenho', ''))
-            
-            clean_tickets.append(clean_ticket)
+# --- Filtros de Data ---
+current_date = datetime.date.today()
+col1, col2 = st.columns(2)
+selected_year = col1.selectbox("Selecione o Ano", range(2023, current_date.year + 2), index=range(2023, current_date.year + 2).index(current_date.year))
+months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+selected_month_name = col2.selectbox("Selecione o Mês", months, index=current_date.month - 1)
+selected_month = months.index(selected_month_name) + 1
 
-        cias_nacionais = ["LATAM", "GOL", "AZUL"]
-        agenciamento_empenho = "2025NE000148"
-        deducoes_34_detalhe = []
-        deducoes_705_detalhe = []
-        deducoes_5_detalhe = []
-        totais_por_empenho = {}
+# --- Formulário para Informações do Cabeçalho ---
+st.header("Informações para o Cabeçalho do Relatório")
 
-        for ticket in clean_tickets:
-            empenho = ticket["empenho"]
-            if empenho != agenciamento_empenho:
-                if empenho not in totais_por_empenho:
-                    totais_por_empenho[empenho] = {'valor_bruto': Decimal(0), 'deducao': Decimal(0)}
+with st.form(key="checklist_form"):
+    processo_nr_input = st.text_input("Processo nº:")
+    credor_input = st.text_input("Credor:", "AIRES TURISMO LTDA")
+    # ... Adicionar todos os outros campos de input do seu modal aqui
+    
+    submit_button = st.form_submit_button(label="Gerar Checklist em Excel")
+
+if submit_button:
+    with st.spinner("Buscando dados e gerando o arquivo..."):
+        all_tickets_df = get_all_tickets()
+        
+        if all_tickets_df.empty:
+            st.warning("Nenhum registro encontrado no banco de dados.")
+        else:
+            # Filtrar DataFrame pelo período selecionado
+            all_tickets_df['emissao_dt'] = pd.to_datetime(all_tickets_df['emissao'])
+            filtered_df = all_tickets_df[
+                (all_tickets_df['emissao_dt'].dt.year == selected_year) &
+                (all_tickets_df['emissao_dt'].dt.month == selected_month)
+            ]
+
+            if filtered_df.empty:
+                st.warning(f"Nenhum registro encontrado para {selected_month_name}/{selected_year}.")
+            else:
+                st.success(f"{len(filtered_df)} registros encontrados para o período.")
                 
-                total_aeroportos_row = sum(ticket.get(ap, Decimal(0)) for ap in todos_aeroportos)
-                totais_por_empenho[empenho]['valor_bruto'] += ticket['tarifa'] + ticket['taxa_embarque'] + ticket['outras_taxas'] + total_aeroportos_row
-
-        agenciamento_aereo_total = sum(t['agenciamento'] for t in clean_tickets if 'aereo' in t['natureza'])
-        agenciamento_seguro_total = sum(t['agenciamento'] for t in clean_tickets if 'seguro' in t['natureza'])
-        total_agenciamento_grupo = agenciamento_aereo_total + agenciamento_seguro_total
-        
-        if total_agenciamento_grupo > 0:
-            if agenciamento_empenho not in totais_por_empenho:
-                totais_por_empenho[agenciamento_empenho] = {'valor_bruto': Decimal(0), 'deducao': Decimal(0)}
-            totais_por_empenho[agenciamento_empenho]['valor_bruto'] += total_agenciamento_grupo
-        
-        for ticket in clean_tickets:
-            empenho = ticket['empenho']
-            fornecedor = ticket['fornecedor']
-            tarifa = ticket['tarifa']
-
-            is_cia_nacional = any(cia in fornecedor for cia in cias_nacionais)
-            if is_cia_nacional and tarifa > 0:
-                deducao = (tarifa * Decimal('0.034')).quantize(Decimal('0.01'))
-                if empenho in totais_por_empenho:
-                    totais_por_empenho[empenho]['deducao'] += deducao
-                deducoes_34_detalhe.append(["DDF 025 - DARF - Impostos Federais", empenho, "", "", 8850, 17024, fornecedor, float(tarifa), float(deducao)])
-
-        if total_agenciamento_grupo > 0:
-            deducao_5 = (total_agenciamento_grupo * Decimal('0.05')).quantize(Decimal('0.01'))
-            if agenciamento_empenho in totais_por_empenho:
-                totais_por_empenho[agenciamento_empenho]['deducao'] += deducao_5
-            deducoes_5_detalhe.append(["DDR001 - DAR - Imposto Municipal", agenciamento_empenho, "239182/239183", "06.064.175/0001-49", "9701 / 1782", "AIRES", 17023, float(total_agenciamento_grupo), float(deducao_5)])
-
-        for empenho in totais_por_empenho:
-            totais_por_empenho[empenho]['liquido'] = totais_por_empenho[empenho]['valor_bruto'] - totais_por_empenho[empenho]['deducao']
-        
-        totais_por_empenho_lista = [{'empenho': k, **v} for k, v in totais_por_empenho.items()]
-        
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "LISTA DE CONFERÊNCIA"
-        
-        # ... A lógica completa de formatação do openpyxl vai aqui ...
-        
-        file_stream = io.BytesIO()
-        wb.save(file_stream)
-        file_stream.seek(0)
-
-        return send_file(
-            file_stream,
-            as_attachment=True,
-            download_name='checklist_pagamento.xlsx',
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": f"Erro interno no servidor: {str(e)}"}), 500
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+                header_info = {
+                    "processo_nr_input": processo_nr_input,
+                    "credor_input": credor_input,
+                    # ... coletar os outros valores do formulário
+                }
+                
+                excel_file = gerar_checklist_excel(filtered_df, header_info, {"year": selected_year, "month": selected_month})
+                
+                st.download_button(
+                    label="Clique para Baixar o Checklist",
+                    data=excel_file,
+                    file_name=f"checklist_{selected_year}_{selected_month}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+```
