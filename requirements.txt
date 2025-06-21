@@ -1,11 +1,10 @@
 # ==============================================================================
-# ARQUIVO 1: requirements.txt
+# ARQUIVO 1: requirements.txt (VERSÃO CORRIGIDA)
 # (Este arquivo informa ao servidor quais pacotes Python instalar)
 # ==============================================================================
-Flask==2.2.2
+Flask==3.0.3
 openpyxl==3.1.2
-pandas==1.5.3
-flask-cors==3.0.10
-gunicorn==20.1.0
-
+pandas==2.2.2
+flask-cors==4.0.1
+gunicorn==22.0.0
 
