@@ -1,6 +1,6 @@
 # ==============================================================================
 # ARQUIVO 1: packages.txt
-# (Crie este novo arquivo na raiz do seu repositório no GitHub)
+# (Crie este arquivo na raiz do seu repositório, se não existir)
 # ==============================================================================
 build-essential
 libssl-dev
