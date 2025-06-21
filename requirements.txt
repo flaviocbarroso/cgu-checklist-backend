@@ -1,6 +1,5 @@
 # ==============================================================================
-# ARQUIVO 1: requirements.txt (VERSÃO FINAL SEM PANDAS)
-# (Copie e cole este conteúdo no seu arquivo requirements.txt no GitHub)
+# ARQUIVO 1: requirements.txt (VERSÃO FINAL E ESTÁVEL)
 # ==============================================================================
 Flask==3.0.3
 openpyxl==3.1.2
