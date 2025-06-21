@@ -1,8 +1,5 @@
-# ARQUIVO 2: requirements.txt 
-# (Substitua o conteúdo do seu requirements.txt por este)
-# ==============================================================================
 streamlit==1.33.0
-pandas==2.1.4
+pandas==1.5.3
 openpyxl==3.1.2
-google-cloud-firestore==2.13.1
-protobuf==4.25.3
+google-cloud-firestore==2.11.1
+protobuf==3.20.3
