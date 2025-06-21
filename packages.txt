@@ -5,3 +5,4 @@
 build-essential
 libssl-dev
 libffi-dev
+pkg-config
