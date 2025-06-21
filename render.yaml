@@ -1,7 +1,13 @@
+# ==============================================================================
+# ARQUIVO 3: render.yaml (NOVO ARQUIVO)
+# (Crie este arquivo na raiz do seu repositório no GitHub)
+# ==============================================================================
 services:
   - type: web
-    name: checklist-app
+    name: cgu-checklist-service
     env: python
+    pythonVersion: "3.9"
     buildCommand: "pip install -r requirements.txt"
     startCommand: "gunicorn app:app"
-    plan: free
+
+```
