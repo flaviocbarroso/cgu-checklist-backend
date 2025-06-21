@@ -1,9 +1,8 @@
 # ==============================================================================
-# ARQUIVO 1: requirements.txt (VERSÃO CORRIGIDA E ESTÁVEL)
-# (Este arquivo informa ao servidor quais pacotes Python instalar)
+# ARQUIVO 1: requirements.txt (VERSÃO FINAL SEM PANDAS)
+# (Copie e cole este conteúdo no seu arquivo requirements.txt no GitHub)
 # ==============================================================================
-Flask==2.2.2
+Flask==3.0.3
 openpyxl==3.1.2
-pandas==1.5.3
-gunicorn==20.1.0
-flask-cors==3.0.10
+gunicorn==22.0.0
+flask-cors==4.0.1
