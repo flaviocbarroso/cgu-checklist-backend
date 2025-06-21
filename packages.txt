@@ -1,0 +1,7 @@
+# ==============================================================================
+# ARQUIVO 1: packages.txt
+# (Crie este novo arquivo na raiz do seu repositório no GitHub)
+# ==============================================================================
+build-essential
+libssl-dev
+libffi-dev
