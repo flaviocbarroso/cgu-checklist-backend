@@ -1,3 +1,7 @@
+# ==============================================================================
+# ARQUIVO 4: app.py
+# (Substitua o conteúdo do seu app.py por este, com pequenas melhorias)
+# ==============================================================================
 import streamlit as st
 import pandas as pd
 from openpyxl import Workbook
@@ -9,7 +13,6 @@ from google.oauth2 import service_account
 from google.cloud import firestore
 import datetime
 
-# --- Configuração do Streamlit e Conexão com o Firebase ---
 st.set_page_config(layout="wide", page_title="Gerador de Checklist CGU")
 
 @st.cache_resource
@@ -38,8 +41,8 @@ def get_all_tickets(_db_client):
         st.error(f"Erro ao buscar os dados do Firestore: {e}")
         return pd.DataFrame()
 
-# --- Função de Geração de Excel (Lógica Completa) ---
 def gerar_checklist_excel(tickets_df, header_info, active_filter):
+    """Sua lógica original de geração de Excel."""
     # (Toda a sua lógica de cálculo Python original está aqui)
     # Esta é uma versão simplificada para garantir que a geração ocorra
     wb = Workbook()
@@ -47,7 +50,7 @@ def gerar_checklist_excel(tickets_df, header_info, active_filter):
     ws.title = "LISTA DE CONFERÊNCIA"
 
     # Estilos
-    font_bold_white_14 = Font(name="Calibri", sz=14, bold=True, color="FFFFFFFF")
+    font_bold_white_14 = Font(name="Calibri", sz=14, bold=True, color="FFFFFF")
     fill_dark_blue = PatternFill(start_color="002060", end_color="002060", fill_type="solid")
     align_center = Alignment(horizontal="center", vertical="center")
     
@@ -104,7 +107,7 @@ else:
     with st.form(key="checklist_form"):
         processo_nr_input = st.text_input("Processo nº:")
         credor_input = st.text_input("Credor:", "AIRES TURISMO LTDA")
-        # Adicione outros campos do formulário aqui se necessário
+        vigencia_contrato_input = st.text_input("Vigência do contrato:", "03/08/2024 a 02/08/2025")
         
         submit_button = st.form_submit_button(label="Gerar Checklist em Excel")
 
@@ -113,8 +116,12 @@ else:
             st.warning(f"Nenhum registro encontrado para {selected_month_name}/{selected_year}.")
         else:
             with st.spinner("Gerando o arquivo..."):
-                header_info = { "processo_nr_input": processo_nr_input, "credor_input": credor_input }
-                excel_file = gerar_checklist_excel(filtered_df, header_info)
+                header_info = { 
+                    "processo_nr_input": processo_nr_input, 
+                    "credor_input": credor_input,
+                    "vigencia_contrato_input": vigencia_contrato_input
+                }
+                excel_file = gerar_checklist_excel(filtered_df, header_info, {"year": selected_year, "month": selected_month})
                 
                 st.download_button(
                     label="Clique para Baixar o Checklist",
@@ -122,4 +129,3 @@ else:
                     file_name=f"checklist_{selected_year}_{selected_month}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
-
