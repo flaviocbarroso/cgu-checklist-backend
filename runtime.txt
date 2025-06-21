@@ -1,0 +1,5 @@
+# ==============================================================================
+# ARQUIVO 2: runtime.txt
+# (Crie este novo arquivo na raiz do seu repositório. Ele força a versão do Python)
+# ==============================================================================
+python-3.9
