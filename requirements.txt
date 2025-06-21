@@ -1,6 +1,5 @@
-# ==============================================================================
-# ARQUIVO 1: requirements.txt (VERSÃO FINAL E ESTÁVEL)
-# (Copie e cole este conteúdo no seu arquivo requirements.txt no GitHub)
+# ARQUIVO 2: requirements.txt 
+# (Substitua o conteúdo do seu requirements.txt por este)
 # ==============================================================================
 streamlit==1.33.0
 pandas==2.1.4
